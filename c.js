@@ -300,6 +300,11 @@ d.on('ready', function(){
 					id: 'id1g'
 				}
 			}
+			dnet.post(JSON.stringify(data),function(res){
+				var data=JSON.parse(res)
+				document.cookie="sessionid="+data.sessionid
+				console.log('cookie:',document.cookie);
+			})
 		})
 		auth.fb=auth.wrap.add('button',{
 			id:'facebook',

@@ -21,7 +21,8 @@ var fs = require('fs'),
 		var p=req.url.split('/'),
 			inner=0,
 			mes='handled inner:'+p[1],			
-			ext;
+			ext,
+			ctype;
 		
 		if(inner==0){
 			if (req.url=='/') req.url='/index.html'
@@ -41,33 +42,32 @@ var fs = require('fs'),
 			} 
 			else {	
 				
-				var data;
-				try {
-					data=JSON.parse(req.url.split('/')[1])
+				var pack;
+				try {					
+					pack=JSON.parse(unescape(req.url.split('/')[1]))
 				} catch (err){
 					
-				}
-				console.log('data:',data);
-				if (data){
-					if(data.type=='ds'){
+				}				
+				
+				if (pack){
+					if(pack.type=='ds'){
 						
-					} else if (data.type=='auth'){
-						if (data.name && data.mail && data.id){
-							var user=users.adduser(data)
+					} else if (pack.type=='auth'){
+						if (pack.data.name && pack.data.mail && pack.data.id){
+							var user=users.adduser(pack.data)
+							res.writeHead(200);
 							res.end(JSON.stringify(user))
+						} else {
+							res.writeHead(200);
+							res.end('handler not defined:'+unescape(p[1]));												
 						}
 					} else {
-						/*
 						res.writeHead(200);
-						res.end('handler not defined:'+p[1]);						
-						/**/
+						res.end('handler not defined:'+p[1]);					
 					}
-				}
-				/**/
-				//console.log('url:',req.url.split('/')[1])
-				
-				//ds				
-				if(p[1].substr(0,2)=='ds'){
+				} else if(p[1].substr(0,2)=='ds'){
+					
+					
 					//check auth
 					ds.handler(req,res)
 				} else if (req.url=='authent') {
@@ -97,7 +97,7 @@ var fs = require('fs'),
 					id: data.id
 				}
 			}
-			users.users[session]=user
+			users.users[user.sessionid]=user
 			return user
 		},
 		remuser: function(sessionid){
