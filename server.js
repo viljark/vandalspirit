@@ -58,6 +58,14 @@ var fs = require('fs'),
 	},
 	app = require('http').createServer(handler)
 	
-fs.mkdir(path.resolve(__dirname+'/ds'));								
+fs.mkdir(path.resolve(__dirname+'/ds'),  function (err) {
+	console.log("DataStore already exists!", err);
+});								
 app.listen(2222);
 console.log('SERVER STARTED');
+
+// lets handle uncaught exceptions 
+process.on('uncaughtException', function(err) {
+    // handle the error safely
+    console.log("Caught an unexpected exception:", err);
+});
