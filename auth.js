@@ -11,14 +11,7 @@ function checkAuth() {
 }
 
 function handleAuthResult(authResult) {
-  var authorizeButton = document.getElementById('authorize-button');
-  if (authResult && !authResult.error) {
-    authorizeButton.style.visibility = 'hidden';
     makeApiCall();
-  } else {
-    authorizeButton.style.visibility = '';
-    authorizeButton.onclick = handleAuthClick;
-  }
 }
 
 function handleAuthClick(event) {
@@ -29,7 +22,6 @@ function handleAuthClick(event) {
 function makeApiCall() {
     gapi.client.load('oauth2', 'v2', function() {
       gapi.client.oauth2.userinfo.get().execute(function(resp) {
-      console.log(resp);
     })
   }
 )}

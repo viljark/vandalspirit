@@ -29,15 +29,12 @@ var fs = require('fs'),
 			ext=extname(req.url);				
 			if (contenttype[ext]){
 				fs.readFile(path.resolve(__dirname+req.url), function (err, data) {
+					var ctype = contenttype[ext];
 					if (err) {
 						res.writeHead(404,{ 'Content-Type':'text/html'});
 						res.end('Error loading: '+req.url,'utf-8');				
 					} else {
-						
-						var cpath=req.url.split('/'),
-							plen=cpath.length,
-							ctype=cpath[plen-1].split();						
-						res.writeHead(200,contenttype[ext]);
+						res.writeHead(200,ctype);
 						res.end(data,'utf-8');
 					}
 				});	

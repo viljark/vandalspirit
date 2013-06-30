@@ -289,6 +289,9 @@ d.on('ready', function(){
 			html: 'google'
 		})
 		auth.gg.on('click',function(e){
+			// auth.loadAuth();
+			handleAuthClick();
+			makeApiCall();
 			var data={
 				type: 'auth',
 				data: {
@@ -303,6 +306,10 @@ d.on('ready', function(){
 			html: 'facebook'
 		})
 		auth.fb.on('click',function(e){
+			// auth.loadAuth();
+			FB.login(function () {
+				
+			});
 			var data={
 				type: 'auth',
 				data: {
@@ -312,6 +319,14 @@ d.on('ready', function(){
 				}
 			}
 		})
+		auth.loadAuth = function () {
+			d.head.add("script",{
+				src: "https://apis.google.com/js/client.js?onload=handleClientLoad",
+			})
+			d.head.add("script", {
+				src: "auth.js"
+			})
+		}
 		return auth
 	}()
 })
