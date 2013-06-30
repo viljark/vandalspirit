@@ -1,5 +1,6 @@
 ﻿var d=document,
 	modal
+	
 d.on('ready', function(){
 	console.log('Document ready');
 	/*
@@ -55,9 +56,9 @@ d.on('ready', function(){
 					}		
 					getgroup(selected.innerHTML.toLowerCase())				
 				})
-			})			
+			})
 		});
-	
+		
 		return teokoda
 	}()
 	function getgroup(name){
@@ -156,6 +157,7 @@ d.on('ready', function(){
 				})
 				activemarker=marker				
 			}
+			d.body.find('.nav').childNodes[0].trigger('click')
 		}
 		google.maps.event.addDomListener(window, 'load', initialize);		
 	})();	
@@ -276,4 +278,40 @@ d.on('ready', function(){
 		return data
 	}
 	
+	//auth
+	var auth=function(){
+		var auth={}
+		auth.wrap=d.body.add('div',{
+			id: 'auth'
+		})
+		auth.gg=auth.wrap.add('button',{
+			id:'google',
+			html: 'google'
+		})
+		auth.gg.on('click',function(e){
+			var data={
+				type: 'auth',
+				data: {
+					name: 'name1g',
+					mail: 'mail1g',
+					id: 'id1g'
+				}
+			}
+		})
+		auth.fb=auth.wrap.add('button',{
+			id:'facebook',
+			html: 'facebook'
+		})
+		auth.fb.on('click',function(e){
+			var data={
+				type: 'auth',
+				data: {
+					name: 'name1f',
+					mail: 'mail1f',
+					id: 'id1f'
+				}
+			}
+		})
+		return auth
+	}()
 })
