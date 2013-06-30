@@ -41,42 +41,56 @@ var fs = require('fs'),
 				});	
 			} 
 			else {	
-				
-				var pack;
+				var pack=unescape(req.url.substr(1));
 				try {					
-					pack=JSON.parse(unescape(req.url.split('/')[1]))
+					pack=JSON.parse(pack)
 				} catch (err){
-					
+					res.writeHead(400)
+					console.log('bad JSON format:',req.url)
+					res.end('bad JSON format: '+req.url)
+					return 0
 				}				
-				
-				if (pack){
-					if(pack.type=='ds'){
+				switch(pack.type){
+					case 'ds':
+						//is authented
+						var sessionid='',
+							itemid='',
+							ownerid
+							
+						var isauthented=function(){
 						
-					} else if (pack.type=='auth'){
-						if (pack.data.name && pack.data.mail && pack.data.id){
-							var user=users.adduser(pack.data)
-							res.writeHead(200);
-							res.end(JSON.stringify(user))
-						} else {
-							res.writeHead(200);
-							res.end('handler not defined:'+unescape(p[1]));												
 						}
-					} else {
+												
+						//is owner
+						var isowner=function(){
+						
+						}
+						
+						ds.handler(req,res,pack)					
+						break
+					case 'auth':
+						if (pack.com=='login'){
+							if (pack.name && pack.mail && pack.id){
+								var user=users.adduser(pack)								
+								res.writeHead(200);
+								res.end(user.sessionid)
+								
+							} else {
+								res.writeHead(200);
+								res.end('bad auth:'+req.url);												
+							}											
+						} else {
+							var sessionid=req.headers.cookie.split('=')[1]
+							users.remuser(sessionid)
+							res.end('out you go')
+						}					
+						console.log('users:',users.users)
+						break
+					default:
 						res.writeHead(200);
-						res.end('handler not defined:'+p[1]);					
-					}
-				} else if(p[1].substr(0,2)=='ds'){
-					
-					
-					//check auth
-					ds.handler(req,res)
-				} else if (req.url=='authent') {
-					
-				} else {
-					res.writeHead(200);
-					res.end('handler not defined:'+p[1]);
+						res.end('handler not defined:'+p[1]);							
+						break
 				}
-				
 			}
 		} 
 		else {

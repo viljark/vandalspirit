@@ -249,11 +249,11 @@ Element.prototype.remclass=function(n){
 				i;
 			for (var nr in vl){
 				i=nl.indexOf(vl[nr]);
-				nl.splice(i,1);						
+				if(i!=-1) nl.splice(i,1);						
 			}
 		} else {
 			var i=nl.indexOf(n);
-			nl.splice(i,1);
+			if (i!=-1) nl.splice(i,1);
 		}
 		this.className=nl.join(' ');			
 	} else {

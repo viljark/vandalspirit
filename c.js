@@ -45,7 +45,15 @@ d.on('ready', function(){
 				but=nav.add('button',{
 					html: ele.toUpperCase()
 				})
-				dnet.post(teokoda.add(ele))
+				var pack={
+					type: 'ds',
+					com: 'add',
+					args: ele,
+					path: 'ds/teokoda'
+				}
+				pack=JSON.stringify(pack)
+				//dnet.post(teokoda.add(ele))
+				dnet.post(pack)
 				but.on('click',function(){
 					if (selected) selected.remclass('selected')
 					this.addclass('selected')
@@ -62,8 +70,14 @@ d.on('ready', function(){
 		return teokoda
 	}()
 	function getgroup(name){
-		dnet.post('ds.teokoda.'+name+'.get()',function(res){
-			if (res){
+		var post={
+			type: 'ds',
+			path: ['ds/teokoda',name].join('/'),
+			com: 'get'
+		}
+		dnet.post(JSON.stringify(post),function(res){
+		//dnet.post('ds.teokoda.'+name+'.get()',function(res){
+			if (res){				
 				for(var nr in markers) markers[nr].setMap(null)
 				markers.length=0
 				var data=JSON.parse(res),
@@ -215,12 +229,22 @@ d.on('ready', function(){
 	})
 	modal.save.on('click',function(){
 		var data=formdata(modal.form),
-			pos
+			pos,
+			gname=selected.innerHTML.toLowerCase()
+			
 		data.id=selected.innerHTML.toLowerCase()+new Date().getTime()
 		pos=activemarker.getPosition()
 		data.pos=[pos.jb,pos.kb]
-		data=JSON.stringify(data)
-		dnet.post('ds.teokoda.'+selected.innerHTML.toLowerCase()+'.add('+data+')',function(res){
+		var pack={
+			type: 'ds',
+			com: 'add',
+			path: 'ds/teokoda'+'/'+gname,
+			args: data
+		}		
+		pack=JSON.stringify(pack)
+		console.log('pack:',pack)
+		dnet.post(pack,function(res){
+		//dnet.post('ds.teokoda.'+selected.innerHTML.toLowerCase()+'.add('+data+')',function(res){
 			modal.wrap.hide()
 			mapd.show()				
 			getgroup(selected.innerHTML.toLowerCase())
@@ -233,8 +257,16 @@ d.on('ready', function(){
 	modal.del.on('click',function(){
 		selectedmarker.setMap(null)
 		var group=selected.innerHTML.toLowerCase(),
-			itemid=selectedmarker.itemid
-		dnet.post('ds.teokoda.'+selected.innerHTML.toLowerCase()+'.rem('+itemid+')',function(res){
+			itemid=selectedmarker.itemid,
+			pack={
+				type: 'ds',
+				com:'rem',
+				path: 'ds/teokoda'+'/'+selected.innerHTML.toLowerCase(),
+				args: itemid
+			}
+		pack=JSON.stringify(pack)
+		dnet.post(pack,function(res){
+		//dnet.post('ds.teokoda.'+selected.innerHTML.toLowerCase()+'.rem('+itemid+')',function(res){
 			modal.wrap.hide()
 			mapd.show()				
 			getgroup(selected.innerHTML.toLowerCase())
@@ -280,58 +312,61 @@ d.on('ready', function(){
 	
 	//auth
 	var auth=function(){
-		var auth={}
-		auth.wrap=d.body.add('div',{
-			id: 'auth'
+		var a={}
+		a.wrap=d.body.add('div',{
+			'class': 'auth'
 		})
-		auth.gg=auth.wrap.add('button',{
-			id:'google',
+		a.gg=a.wrap.add('button',{
+			'class':'google',
 			html: 'google'
 		})
-		auth.gg.on('click',function(e){
+		a.gg.on('click',function(e){
 			// auth.loadAuth();
 			handleAuthClick();
 			makeApiCall();
-			var data={
-				type: 'auth',
-				data: {
-					name: 'name1g',
-					mail: 'mail1g',
-					id: 'id1g'
-				}
-			}
-			dnet.post(JSON.stringify(data),function(res){
-				var data=JSON.parse(res)
-				document.cookie="sessionid="+data.sessionid
-				console.log('cookie:',document.cookie);
-			})
 		})
-		auth.fb=auth.wrap.add('button',{
-			id:'facebook',
+		
+		a.fb=a.wrap.add('button',{
+			'class':'facebook',
 			html: 'facebook'
 		})
-		auth.fb.on('click',function(e){
+		a.fb.on('click',function(e){
 			// auth.loadAuth();
 			FB.login(function () {
-				
+				console.log('fb login');
 			});
-			var data={
-				type: 'auth',
-				data: {
-					name: 'name1f',
-					mail: 'mail1f',
-					id: 'id1f'
-				}
-			}
 		})
-		auth.loadAuth = function () {
-			d.head.add("script",{
-				src: "https://apis.google.com/js/client.js?onload=handleClientLoad",
-			})
-			d.head.add("script", {
-				src: "auth.js"
-			})
-		}
-		return auth
+		a.logged=0
+		a.fake=a.wrap.add('button',{
+			html: 'fake',
+			'class':'fake not'
+		})
+		a.fake.on('click',function(e){
+			var pack={
+				type: 'auth',
+				com: 'login',
+				name: 'user1',
+				mail: 'mail1',
+				id: '123'
+			}
+			if(auth.logged) {
+				pack.com='logout'
+				auth.logged=0
+				dnet.post(pack,function(res){
+					auth.fake.addclass('not')
+				})				
+			} else {
+				pack.com='login'
+				auth.logged=1
+				dnet.post(pack,function(res){
+					auth.fake.remclass('not')
+					document.cookie='sessionid='+res
+					console.log('cookie:',document.cookie)
+				})				
+			}
+			
+		})
+	
+		return a
 	}()
 })
