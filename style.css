@@ -109,3 +109,13 @@ input,textarea{
 	color: #6C8541;
 	max-width: 100%;
 }
+#auth {
+	position: absolute;
+	top: 0px;
+	right: 0px;
+	text-align: right;
+}
+#auth > * {
+	display: block;
+	margin: 0 0 0 auto;
+}
