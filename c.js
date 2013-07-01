@@ -30,45 +30,43 @@ d.on('ready', function(){
 		return nav
 	}()
 	var selected;
-	var teokoda=function(){
-		var teokoda=ds.add('teokoda')			
-		teokoda.add('hoiud')
-		teokoda.add('aiad')
-		teokoda.add('hoidjad')
-		teokoda.add('trennid')
-		teokoda.add('ringid')
-			
-		teokoda.get(function(res){
-			var but,
-				groups=[];
-			loop(JSON.parse(res),function(ind,ele){		
-				but=nav.add('button',{
-					html: ele.toUpperCase()
-				})
-				var pack={
-					type: 'ds',
-					com: 'add',
-					args: ele,
-					path: 'ds/teokoda'
+	var data={
+		type: 'ds',
+		com: 'get',
+		path: 'ds/teokoda'
+	}
+	//get groups
+	dnet.post(data,function(res){		
+		var but,
+			groups=[],
+			rbow=[
+				'#AA3D12',
+				'rgb(170, 121, 18)',
+				'rgb(134, 170, 18)',
+				'rgb(18, 170, 127)',
+				'rgb(18, 61, 170)',
+				'rgb(85, 18, 170)'				
+			];
+		loop(JSON.parse(res),function(ind,ele){		
+			but=nav.add('button',{
+				html: ele.toUpperCase(),
+				style:{
+					background: rbow[ind%6]
 				}
-				pack=JSON.stringify(pack)
-				//dnet.post(teokoda.add(ele))
-				dnet.post(pack)
-				but.on('click',function(){
-					if (selected) selected.remclass('selected')
-					this.addclass('selected')
-					selected=this
-					if (activemarker) {
-						activemarker.setMap(null)
-						activemarker=0
-					}		
-					getgroup(selected.innerHTML.toLowerCase())				
-				})
 			})
-		});
-		
-		return teokoda
-	}()
+			but.on('click',function(){
+				if (selected) selected.remclass('selected')
+				this.addclass('selected')
+				selected=this
+				if (activemarker) {
+					activemarker.setMap(null)
+					activemarker=0
+				}		
+				getgroup(selected.innerHTML.toLowerCase())				
+			})
+		})
+	});
+	
 	function getgroup(name){
 		var post={
 			type: 'ds',
@@ -194,11 +192,11 @@ d.on('ready', function(){
 		})
 		
 		m.form=m.content.add('form')
-		addfield('omanik').to(m.form)
-		addfield('nimi').to(m.form)
-		addfield('aadress').to(m.form)
-		addfield('tel').to(m.form)
-		addfield('lisa info','textarea').to(m.form)		
+		addfield('owner','omanik').to(m.form)
+		addfield('name','nimi').to(m.form)
+		addfield('sddress','aadress').to(m.form)
+		addfield('phone','tel').to(m.form)
+		addfield('info','lisa info','textarea').to(m.form)		
 		
 		m.controls=m.body.add('div',{
 			'class': 'controls'
@@ -218,7 +216,6 @@ d.on('ready', function(){
 		m.wrap.hide()
 		return m
 	}()
-	
 	modal.cancel.on('click',function(){
 		if (activemarker) {
 			activemarker.setMap(null)
@@ -233,6 +230,7 @@ d.on('ready', function(){
 			gname=selected.innerHTML.toLowerCase()
 			
 		data.id=selected.innerHTML.toLowerCase()+new Date().getTime()
+		data.owner=auth.fakeinput.value
 		pos=activemarker.getPosition()
 		data.pos=[pos.jb,pos.kb]
 		var pack={
@@ -241,13 +239,12 @@ d.on('ready', function(){
 			path: 'ds/teokoda'+'/'+gname,
 			args: data
 		}		
-		pack=JSON.stringify(pack)
 		console.log('pack:',pack)
 		dnet.post(pack,function(res){
-		//dnet.post('ds.teokoda.'+selected.innerHTML.toLowerCase()+'.add('+data+')',function(res){
 			modal.wrap.hide()
 			mapd.show()				
 			getgroup(selected.innerHTML.toLowerCase())
+			smes.show(res)
 		})						
 		if (activemarker) {
 			activemarker.setMap(null)
@@ -264,23 +261,21 @@ d.on('ready', function(){
 				path: 'ds/teokoda'+'/'+selected.innerHTML.toLowerCase(),
 				args: itemid
 			}
-		pack=JSON.stringify(pack)
 		dnet.post(pack,function(res){
-		//dnet.post('ds.teokoda.'+selected.innerHTML.toLowerCase()+'.rem('+itemid+')',function(res){
 			modal.wrap.hide()
 			mapd.show()				
 			getgroup(selected.innerHTML.toLowerCase())
+			smes.show(res)
 		})
 	})		
 		
-
-	function addfield(name,tag){
+	function addfield(name,vis,tag){
 		tag=tag || 'input'
 		var field=document.createElement('div')
 		field.className='field'				
 		field.add('label',{
 			'for': name,
-			html: name,
+			html: vis,
 			style:{
 				display: 'block'
 			}
@@ -341,6 +336,10 @@ d.on('ready', function(){
 			html: 'fake',
 			'class':'fake not'
 		})
+		a.fakeinput=a.wrap.add('input',{
+			'class':'fakeinput',
+			value: 'user1'
+		})
 		a.fake.on('click',function(e){
 			var pack={
 				type: 'auth',
@@ -368,5 +367,31 @@ d.on('ready', function(){
 		})
 	
 		return a
+	}()
+
+	//server mes
+	var smes=function(){
+		var smes={
+			show: function(mes){
+				smes.cont.set({
+					html: mes
+				})
+				smes.body.show()
+			}
+		}
+		smes.body=d.body.add('div',{
+			'class': 'smes'
+		})
+		smes.body.on('click',function(e){
+			this.hide()
+		})		
+		smes.note=smes.body.add('div',{
+			'class':'note',
+			html: 'click to close'
+		})		
+		smes.cont=smes.body.add('div',{
+			'class':'cont'
+		})		
+		return smes
 	}()
 })

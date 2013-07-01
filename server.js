@@ -18,84 +18,116 @@ var fs = require('fs'),
 		return lp;
 	},
 	handler=function(req,res){		
-		var p=req.url.split('/'),
-			inner=0,
-			mes='handled inner:'+p[1],			
-			ext,
-			ctype;
-		
-		if(inner==0){
-			if (req.url=='/') req.url='/index.html'
-			
-			ext=extname(req.url);				
-			if (contenttype[ext]){
-				fs.readFile(path.resolve(__dirname+req.url), function (err, data) {
-					var ctype = contenttype[ext];
-					if (err) {
-						res.writeHead(404,{ 'Content-Type':'text/html'});
-						res.end('Error loading: '+req.url,'utf-8');				
-					} else {
-						res.writeHead(200,ctype);
-						res.end(data,'utf-8');
-					}
-				});	
-			} 
-			else {	
-				var pack=unescape(req.url.substr(1));
-				try {					
-					pack=JSON.parse(pack)
-				} catch (err){
-					res.writeHead(400)
-					console.log('bad JSON format:',req.url)
-					res.end('bad JSON format: '+req.url)
-					return 0
-				}				
-				switch(pack.type){
-					case 'ds':
-						//is authented
-						var sessionid='',
-							itemid='',
-							ownerid
-							
-						var isauthented=function(){
-						
-						}
-												
-						//is owner
-						var isowner=function(){
-						
-						}
-						
-						ds.handler(req,res,pack)					
-						break
-					case 'auth':
-						if (pack.com=='login'){
-							if (pack.name && pack.mail && pack.id){
-								var user=users.adduser(pack)								
-								res.writeHead(200);
-								res.end(user.sessionid)
-								
-							} else {
-								res.writeHead(200);
-								res.end('bad auth:'+req.url);												
-							}											
-						} else {
-							var sessionid=req.headers.cookie.split('=')[1]
-							users.remuser(sessionid)
-							res.end('out you go')
-						}					
-						console.log('users:',users.users)
-						break
-					default:
-						res.writeHead(200);
-						res.end('handler not defined:'+p[1]);							
-						break
+		if (req.url=='/') req.url='/index.html'
+		var ext=extname(req.url),
+			sessionid
+		if(req.headers.cookie){
+			var cp=req.headers.cookie.split(';'),
+				co;
+			for(var nr in cp){				
+				co=cp[nr]
+				co=co.split('=')
+				if(co[0].replace(/ /g,'')=='sessionid'){
+					sessionid=co[1]
+					break;
 				}
 			}
+			
+		}
+		if (contenttype[ext]){
+			fs.readFile(path.resolve(__dirname+req.url), function (err, data) {
+				var ctype = contenttype[ext];
+				if (err) {
+					res.writeHead(404,{ 'Content-Type':'text/html'});
+					res.end('Error loading: '+req.url,'utf-8');				
+				} else {
+					res.writeHead(200,ctype);
+					res.end(data,'utf-8');
+				}
+			});	
 		} 
-		else {
-			res.writeHead(200);
-			res.end(mes);
+		else {	
+			var data=unescape(req.url.substr(1));
+			try {					
+				data=JSON.parse(data)
+			} catch (err){
+				res.writeHead(400)
+				console.log('bad JSON format:',req.url)
+				res.end('bad JSON format: '+req.url)
+				return 0
+			}				
+			switch(data.type){
+				case 'ds':
+					//is authented
+					var com=data.com,
+						isauth=0;
+						
+					if (sessionid in users.users) isauth=1
+					
+					//console.log('ds com:',com,isauth,sessionid,sessionid.length);
+											
+					//is owner
+					var isowner=function(){
+					
+					}
+					var allow=0
+					if (com=='get'){
+						allow=1
+					} else if (isauth){
+						switch (com){
+							case 'add':
+								allow=1
+								break;
+							case 'rem':
+								var cdata={}
+								for(var key in data){
+									cdata[key]=data[key]
+								}
+								cdata.com='get'
+								ds.handler(cdata,function(rdata){								
+									console.log('rem data:',rdata)																		
+								})							
+								res.writeHead(200);
+								res.end('almost removed');									
+								break;
+						}
+					}
+					
+					if (allow) {						
+						ds.handler(data,function(rdata){
+							if(typeof(rdata)=='object') rdata=JSON.stringify(rdata)
+							res.writeHead(200);
+							res.end(rdata);
+						})
+					} else {
+						res.writeHead(200);
+						res.end('not allowed login');							
+					}
+					break
+				case 'auth':
+					//fake auth
+					if (data.com=='login'){						
+						if (data.name && data.mail && data.id){
+							var user=users.adduser(data)								
+							res.writeHead(200);
+							res.end(user.sessionid)
+							
+						} else {
+							res.writeHead(200);
+							res.end('bad auth:'+req.url);												
+						}											
+					} else {
+						var sessionid=req.headers.cookie.split('=')[1]
+						users.remuser(sessionid)
+						res.end('out you go')
+					}					
+					console.log('users:',users.users)
+					break
+				default:
+					res.writeHead(200);
+					res.end('handler not defined:'+p[1]);							
+					break
+			}
 		}
 	},
 	app = require('http').createServer(handler),
