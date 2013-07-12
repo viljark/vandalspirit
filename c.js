@@ -307,7 +307,10 @@ d.on('ready', function(){
 	
 	//auth
 	var auth=function(){
-		var a={}
+		var a={};
+		a.doLogin = function (name, email) {
+			console.log("logging in with " + name + ", " + email);
+		}
 		a.wrap=d.body.add('div',{
 			'class': 'auth'
 		})
@@ -316,9 +319,24 @@ d.on('ready', function(){
 			html: 'google'
 		})
 		a.gg.on('click',function(e){
-			// auth.loadAuth();
-			handleAuthClick();
-			makeApiCall();
+			console.log("google auth")
+			gapi.auth.authorize({client_id: clientId, scope: scopes, immediate: false}, function (result) {
+			console.log("auth result:", result);
+			if (result && result.access_token) { // we got token
+				//get user data
+				gapi.client.load('oauth2', 'v2', function() {
+					console.log("getting user info");
+			      	gapi.client.oauth2.userinfo.get().execute(function(result) {
+				      	console.log("info result:", result);
+						if (result && result.email) {
+							a.doLogin(result.name, result.email);
+						} else {
+							console.error("Hmm, some data is missing");
+						}
+			    	})
+		  		})
+			}
+			});	
 		})
 		
 		a.fb=a.wrap.add('button',{
@@ -326,10 +344,25 @@ d.on('ready', function(){
 			html: 'facebook'
 		})
 		a.fb.on('click',function(e){
-			// auth.loadAuth();
-			FB.login(function () {
-				console.log('fb login');
-			});
+			FB.api('/me', function(response) {
+				console.log("result of initial fp.api call:", response);
+				if (response && response.name) {
+					a.doLogin(response.name, response.email);
+				} else {
+					FB.login(function (response) {
+						console.log('fb login response', response);
+						FB.api('/me', function(response) {
+							if (response && response.name) {
+								a.doLogin(response.name, response.email);
+							} else {
+								console.error("Hmm, some data is missing");
+							}
+						})
+					});
+				}
+			    
+			 });	
+			
 		})
 		a.logged=0
 		a.fake=a.wrap.add('button',{
