@@ -23,6 +23,7 @@ body {
 	vertical-align: top;
 	line-height: 64px;
 	margin-right: 5px;
+	text-transform: uppercase;
 }
 .logowrap .img{
 	background: url(/images/shell.png);
@@ -37,6 +38,9 @@ body {
 	border-radius: 64px;
 	margin: 0px auto 10px auto;
 	display: table;
+}
+.nav button {
+	text-transform: uppercase;
 }
 button{
 	border: 2px solid #fff;
@@ -119,6 +123,19 @@ input,textarea{
 }
 .fake.not {
 	background: #AA3D12;
+}
+.cols {
+	display: table;
+	width: 100%;
+}
+.cols > *{
+	display: table-cell;
+}
+.itemedit {
+	text-transform: uppercase;
+}
+.itemedit input{
+	width: 100%;
 }
 /* smes */
 .smes {

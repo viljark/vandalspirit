@@ -47,7 +47,8 @@ var fs = require('fs'),
 			});	
 		} 
 		else {	
-			var data=unescape(req.url.substr(1));
+			var data=unescape(req.url.substr(1)),
+				user
 			try {					
 				data=JSON.parse(data)
 			} catch (err){
@@ -61,8 +62,9 @@ var fs = require('fs'),
 					//is authented
 					var com=data.com,
 						isauth=0;
-						
-					if (sessionid in users.users) isauth=1
+					
+					user=users.users[sessionid]
+					if(user) user.time=new Date().getTime()
 					
 					//console.log('ds com:',com,isauth,sessionid,sessionid.length);
 											
@@ -73,7 +75,7 @@ var fs = require('fs'),
 					var allow=0
 					if (com=='get'){
 						allow=1
-					} else if (isauth){
+					} else if (user){
 						switch (com){
 							case 'add':
 								allow=1
@@ -120,8 +122,7 @@ var fs = require('fs'),
 						var sessionid=req.headers.cookie.split('=')[1]
 						users.remuser(sessionid)
 						res.end('out you go')
-					}					
-					console.log('users:',users.users)
+					}										
 					break
 				default:
 					res.writeHead(200);
@@ -144,10 +145,14 @@ var fs = require('fs'),
 				}
 			}
 			users.users[user.sessionid]=user
+			console.log('add user:',user.sessionid)
 			return user
 		},
 		remuser: function(sessionid){
-			if(sessionid in users.users) delete users.users[sessionid]
+			if(sessionid in users.users) {
+				delete users.users[sessionid]
+				console.log('rem user:',sessionid)
+			}			
 		},
 		isauthented: function(sessionid){
 			if(sessionid in users.users)
@@ -155,6 +160,24 @@ var fs = require('fs'),
 			return false;
 		}
 	}
+	
+//rem users after 60 mins
+var kicktime=3600000
+function remusers(){
+	var time=new Date().getTime(),
+		user
+	for(var sessionid in users.users){
+		user=users.users[sessionid]
+		if (time-user.time>kicktime){
+			remuser(sessionid)
+		}		
+	}
+	setTimeout(function(){
+		remusers()
+	},kicktime)
+}
+remusers()
+
 fs.exists(path.resolve(__dirname+'/ds'),function(exists){
 	if(!exists) fs.mkdir(path.resolve(__dirname+'/ds'));
 })

@@ -8,27 +8,11 @@ d.on('ready', function(){
 	dnet.post('sethandler/sapp.handler')
 	/**/
 	
-	var logo=function(){
-		var logo=d.body.add('div',{
-			'class':'logowrap'
-		})
-		logo.add('div',{
-			id: 'logo',
-			'class':'logo',
-			//html: ('Tëökoda').toUpperCase()
-			html: ('Teokoda').toUpperCase()
-		})
-		logo.add('div',{
-			'class':'img'
-		})	
-		return logo
-	}()
-	var nav=function(){
-		var nav=d.body.add('div',{
-			'class':'nav'
-		});	
-		return nav
-	}()
+	var logo=d.body.r('div class=logowrap')
+		.r('div id=logo class=logo html=Teokoda').p
+		.r('div class=img').p
+	
+	var nav=d.body.r('div class=nav')
 	var selected;
 	var data={
 		type: 'ds',
@@ -48,22 +32,19 @@ d.on('ready', function(){
 				'rgb(85, 18, 170)'				
 			];
 		loop(JSON.parse(res),function(ind,ele){		
-			but=nav.add('button',{
-				html: ele.toUpperCase(),
-				style:{
-					background: rbow[ind%6]
-				}
-			})
-			but.on('click',function(){
-				if (selected) selected.remclass('selected')
-				this.addclass('selected')
-				selected=this
-				if (activemarker) {
-					activemarker.setMap(null)
-					activemarker=0
-				}		
-				getgroup(selected.innerHTML.toLowerCase())				
-			})
+			but=nav.r('button')
+				.h(ele)
+				.s('background:'+rbow[ind%6])
+				.on('click',function(e){
+					if (selected) selected.remclass('selected')
+					this.addclass('selected')
+					selected=this
+					if (activemarker) {
+						activemarker.setMap(null)
+						activemarker=0
+					}		
+					getgroup(selected.innerHTML.toLowerCase())									
+				})
 		})
 	});
 	
@@ -100,7 +81,7 @@ d.on('ready', function(){
 						modal.wrap.show()	
 						modal.del.show()
 						//modal.save.hide()	
-						modal.form.find('#nimi').value=selectedmarker.itemid
+						modal.wrap.find('#nimi').value=selectedmarker.itemid
 					})
 					markers.push(marker)
 				}
@@ -121,14 +102,9 @@ d.on('ready', function(){
 			trennid: 'trenn',
 			ringid: 'ring',
 		};
-	(function(){		
-		mapwrap=d.body.add('div',{
-			'class': 'mapwrap'
-		})
-		mapd=mapwrap.add('div',{
-			id: 'map',
-			'class':'map'
-		})
+	(function(){	
+		mapwrap=d.body.r('div class=mapwrap')
+			mapd=mapwrap.r('div id=map class=map')
 
 		function initialize() {
 			var mapOptions = {
@@ -160,7 +136,7 @@ d.on('ready', function(){
 					title: 'Lisa uus'
 				})		
 				google.maps.event.addListener(marker, 'click', function(e) {					
-					modal.form.find('#nimi').value=''
+					modal.wrap.find('#nimi').value=''
 					mapd.hide()
 					modal.wrap.show()
 					modal.del.hide()
@@ -175,57 +151,56 @@ d.on('ready', function(){
 	})();	
 	
 	
-	modal=function(){
-		var m={}
-		m.wrap=mapwrap.add('div',{
-			'class': 'modalwrap'
-		})
-		m.body=m.wrap.add('div',{
-			'class':'modal'
-		})
-		m.header=m.body.add('div',{
-			'class':'header',
-			html: 'modal header'
-		})
-		m.content=m.body.add('div',{
-			'class':'content'
-		})
-		
-		m.form=m.content.add('form')
-		addfield('owner','omanik').to(m.form)
-		addfield('name','nimi').to(m.form)
-		addfield('sddress','aadress').to(m.form)
-		addfield('phone','tel').to(m.form)
-		addfield('info','lisa info','textarea').to(m.form)		
-		
-		m.controls=m.body.add('div',{
-			'class': 'controls'
-		})
-		m.cancel=m.controls.add('button',{
-			'class':'cancel grey',
-			html: ('Tagasi').toUpperCase()
-		})
-		m.save=m.controls.add('button',{
-			'class':'save',
-			html: ('Salvesta').toUpperCase()
-		})		
-		m.del=m.controls.add('button',{
-			'class':'delete',
-			html: ('Kustuta').toUpperCase()
-		})		
-		m.wrap.hide()
-		return m
-	}()
-	modal.cancel.on('click',function(){
+	var fields=[
+			['owner','omanik'],
+			['name','nimi'],
+			['address','aadress'],
+			['phone','tel'],
+			['info','lisa info']
+		],
+		id,
+		name
+	modal={}
+	modal.wrap=mapwrap.r('div class=modalwrap')
+		.r('div class=modal')
+			.r('div class=header html=modal header').p
+			.r('div class=content')
+				.r('form class=itemedit')
+				.loop(fields.length,function(i,ele){
+					id=fields[i][0]
+					name=fields[i][1]
+					ele.r('div class=field')
+						.r('label for='+id)
+							.h(name).p
+						.r('input id='+id+' name='+name)
+				}).p
+				.r('div class=controls')
+					.r('button class=grey cancel html=tagasi')
+						.on('click',function(e){
+							canceledit()
+						}).p
+					.r('button class=save html=salvesta')
+						.on('click',function(e){
+							saveitem()
+						}).p
+					.r('button class=delete html=kustuta')
+						.on('click',function(e){
+							deleteitem()
+						}).p.p.p.p
+	modal.del=modal.wrap.find('.delete')	
+	modal.wrap.hide()
+	
+	function canceledit(){
 		if (activemarker) {
 			activemarker.setMap(null)
 			activemarker=0
 		}
 		modal.wrap.hide()
-		mapd.show()
-	})
-	modal.save.on('click',function(){
-		var data=formdata(modal.form),
+		mapd.show()				
+	}
+	function saveitem(){
+		console.log('saveitem')
+		var data=formdata(modal.wrap.find('form')),
 			pos,
 			gname=selected.innerHTML.toLowerCase()
 			
@@ -239,19 +214,18 @@ d.on('ready', function(){
 			path: 'ds/teokoda'+'/'+gname,
 			args: data
 		}		
-		console.log('pack:',pack)
 		dnet.post(pack,function(res){
 			modal.wrap.hide()
 			mapd.show()				
 			getgroup(selected.innerHTML.toLowerCase())
-			smes.show(res)
+			showsmes(res)
 		})						
 		if (activemarker) {
 			activemarker.setMap(null)
 			activemarker=0
-		}		
-	})
-	modal.del.on('click',function(){
+		}			
+	}
+	function deleteitem(){
 		selectedmarker.setMap(null)
 		var group=selected.innerHTML.toLowerCase(),
 			itemid=selectedmarker.itemid,
@@ -265,32 +239,10 @@ d.on('ready', function(){
 			modal.wrap.hide()
 			mapd.show()				
 			getgroup(selected.innerHTML.toLowerCase())
-			smes.show(res)
-		})
-	})		
-		
-	function addfield(name,vis,tag){
-		tag=tag || 'input'
-		var field=document.createElement('div')
-		field.className='field'				
-		field.add('label',{
-			'for': name,
-			html: vis,
-			style:{
-				display: 'block'
-			}
-		})
-		field.add(tag,{
-			id: name,
-			name: name,
-			style:{
-				display: 'block',
-				width: '100%'
-			}
-			
+			showsmes(res)
 		})		
-		return field
 	}	
+		
 	function formdata(form){
 		var fields=form.findall('.field'),
 			field,
@@ -308,90 +260,63 @@ d.on('ready', function(){
 	//auth
 	var auth=function(){
 		var a={}
-		a.wrap=d.body.add('div',{
-			'class': 'auth'
-		})
-		a.gg=a.wrap.add('button',{
-			'class':'google',
-			html: 'google'
-		})
-		a.gg.on('click',function(e){
-			// auth.loadAuth();
-			handleAuthClick();
-			makeApiCall();
-		})
+		a.wrap=d.body.r('div class=auth')		
+			a.gg=a.wrap.r('button class=google html=google')
+				.on('click',function(e){
+					// auth.loadAuth();
+					handleAuthClick();
+					makeApiCall();
+				})
 		
-		a.fb=a.wrap.add('button',{
-			'class':'facebook',
-			html: 'facebook'
-		})
-		a.fb.on('click',function(e){
-			// auth.loadAuth();
-			FB.login(function () {
-				console.log('fb login');
-			});
-		})
+			a.fb=a.wrap.r('button class=facebook html=facebook')
+				.on('click',function(e){
+					// auth.loadAuth();
+					FB.login(function () {
+						console.log('fb login');
+					});
+				})
 		a.logged=0
-		a.fake=a.wrap.add('button',{
-			html: 'fake',
-			'class':'fake not'
-		})
-		a.fakeinput=a.wrap.add('input',{
-			'class':'fakeinput',
-			value: 'user1'
-		})
-		a.fake.on('click',function(e){
-			var pack={
-				type: 'auth',
-				com: 'login',
-				name: 'user1',
-				mail: 'mail1',
-				id: '123'
-			}
-			if(auth.logged) {
-				pack.com='logout'
-				auth.logged=0
-				dnet.post(pack,function(res){
-					auth.fake.addclass('not')
-				})				
-			} else {
-				pack.com='login'
-				auth.logged=1
-				dnet.post(pack,function(res){
-					auth.fake.remclass('not')
-					document.cookie='sessionid='+res
-					console.log('cookie:',document.cookie)
-				})				
-			}
-			
-		})
-	
+		a.fake=a.wrap.r('button class=fake not html=fake')
+			.on('click',function(e){
+				var pack={
+					type: 'auth',
+					com: 'login',
+					name: 'user1',
+					mail: 'mail1',
+					id: '123'
+				}
+				if(auth.logged) {
+					pack.com='logout'
+					auth.logged=0
+					dnet.post(pack,function(res){
+						auth.fake.addclass('not')
+					})				
+				} else {
+					pack.com='login'
+					auth.logged=1
+					dnet.post(pack,function(res){
+						auth.fake.remclass('not')
+						document.cookie='sessionid='+res
+						console.log('cookie:',document.cookie)
+					})				
+				}
+				
+			})	
+		
+		a.fakeinput=a.wrap.r('input class=fakeinput value=user1')
 		return a
 	}()
 
 	//server mes
-	var smes=function(){
-		var smes={
-			show: function(mes){
-				smes.cont.set({
-					html: mes
-				})
-				smes.body.show()
-			}
-		}
-		smes.body=d.body.add('div',{
-			'class': 'smes'
-		})
-		smes.body.on('click',function(e){
+	function showsmes(mes){
+		smes.find('.cont').h(mes)
+		smes.show()
+	}
+	var smes=d.body.r('div class=smes')
+		.on('click',function(e){
 			this.hide()
-		})		
-		smes.note=smes.body.add('div',{
-			'class':'note',
-			html: 'click to close'
-		})		
-		smes.cont=smes.body.add('div',{
-			'class':'cont'
-		})		
-		return smes
-	}()
+		})
+		.r('div class=note html=click to close').p
+		.r('div class=cont').p
+	smes.hide()
 })
