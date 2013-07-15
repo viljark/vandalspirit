@@ -71,17 +71,20 @@ d.on('ready', function(){
 						icon: '/images/'+icomap[selected.innerHTML.toLowerCase()]+'.png',
 						shadow: '/images/shadow.png',
 						animation: google.maps.Animation.DROP,
-						title: item.nimi,
-						itemid: item.id
-					})	
+						title: item.name,
+						itemid: item.id,
+						item: item
+					})						
 					
 					google.maps.event.addListener(marker, 'click', function(e) {
 						selectedmarker=this						
 						mapd.hide()
 						modal.wrap.show()	
 						modal.del.show()
+						console.log('selected marker:',this)
 						//modal.save.hide()	
-						modal.wrap.find('#nimi').value=selectedmarker.itemid
+						//modal.wrap.find('#nimi').value=selectedmarker.itemid
+						fillform(modal.wrap.find('form'),this.item)
 					})
 					markers.push(marker)
 				}
@@ -102,6 +105,7 @@ d.on('ready', function(){
 			trennid: 'trenn',
 			ringid: 'ring',
 		};
+	//map
 	(function(){	
 		mapwrap=d.body.r('div class=mapwrap')
 			mapd=mapwrap.r('div id=map class=map')
@@ -140,8 +144,7 @@ d.on('ready', function(){
 					mapd.hide()
 					modal.wrap.show()
 					modal.del.hide()
-					console.log('save show');
-					//modal.save.show()
+					clearform(modal.wrap.find('form'))
 				})
 				activemarker=marker				
 			}
@@ -151,10 +154,11 @@ d.on('ready', function(){
 	})();	
 	
 	
-	var fields=[
-			['owner','omanik'],
+	var fields=[			
 			['name','nimi'],
 			['address','aadress'],
+			['creator','lisanud'],
+			['mail','e-mail'],
 			['phone','tel'],
 			['info','lisa info']
 		],
@@ -172,7 +176,16 @@ d.on('ready', function(){
 					ele.r('div class=field')
 						.r('label for='+id)
 							.h(name).p
-						.r('input id='+id+' name='+name)
+						.fn(function(e){
+							var tag='input'
+							if(id=='info'){								
+								e.r('textarea maxlength=500 id='+id+' name='+id)
+							} else if (id=='creator' || id=='mail'){
+								e.r('input id='+id+' name='+id+' readonly=readonly' )
+							} else {
+								e.r('input class=required id='+id+' name='+id)
+							}
+						})						
 				}).p
 				.r('div class=controls')
 					.r('button class=grey cancel html=tagasi')
@@ -187,7 +200,8 @@ d.on('ready', function(){
 						.on('click',function(e){
 							deleteitem()
 						}).p.p.p.p
-	modal.del=modal.wrap.find('.delete')	
+	modal.del=modal.wrap.find('.delete')
+	modal.form=modal.wrap.find('form')
 	modal.wrap.hide()
 	
 	function canceledit(){
@@ -199,31 +213,31 @@ d.on('ready', function(){
 		mapd.show()				
 	}
 	function saveitem(){
-		console.log('saveitem')
 		var data=formdata(modal.wrap.find('form')),
 			pos,
 			gname=selected.innerHTML.toLowerCase()
-			
-		data.id=selected.innerHTML.toLowerCase()+new Date().getTime()
-		data.owner=auth.fakeinput.value
-		pos=activemarker.getPosition()
-		data.pos=[pos.jb,pos.kb]
-		var pack={
-			type: 'ds',
-			com: 'add',
-			path: 'ds/teokoda'+'/'+gname,
-			args: data
-		}		
-		dnet.post(pack,function(res){
-			modal.wrap.hide()
-			mapd.show()				
-			getgroup(selected.innerHTML.toLowerCase())
-			showsmes(res)
-		})						
-		if (activemarker) {
-			activemarker.setMap(null)
-			activemarker=0
-		}			
+		if(data){	
+			// data.id=selected.innerHTML.toLowerCase()+new Date().getTime()
+			// data.owner=auth.fakeinput.value
+			pos=activemarker.getPosition()
+			data.pos=[pos.jb,pos.kb]
+			var pack={
+				type: 'ds',
+				com: 'add',
+				path: 'ds/teokoda'+'/'+gname,
+				args: data
+			}		
+			dnet.post(pack,function(res){
+				modal.wrap.hide()
+				mapd.show()				
+				getgroup(selected.innerHTML.toLowerCase())
+				showsmes(res)
+			})						
+			if (activemarker) {
+				activemarker.setMap(null)
+				activemarker=0
+			}			
+		}
 	}
 	function deleteitem(){
 		selectedmarker.setMap(null)
@@ -249,36 +263,40 @@ d.on('ready', function(){
 			label,
 			inp=[],
 			data={}
-		for(var nr in fields){
-			field=fields[nr]
+				
+		loop(fields,function(nr,field){
 			inp=field.find('input') || field.find('textarea')				
+			if(inp.hasclass('required') && inp.value=='') {
+				data=''
+				inp.focus()
+				showsmes('Täida see väli ka ära')
+				return false
+			}
 			data[inp.get('name')]=inp.value				
-		}
+		})
 		return data
+	}
+	function fillform(form,data){
+		console.log('fill form:',form,data);
+		
+		loop(data,function(key,val){
+			form.find('#'+key).value=val
+		})
+		form.find('#mail').p.show()
+		form.find('#creator').p.show()		
+	}
+	function clearform(form){
+		var inps=form.findall('input'),
+			texts=form.findall('textarea')
+		loop(inps.concat(texts),function(i,e){
+			e.value=''
+		})
+		form.find('#mail').p.hide()
+		form.find('#creator').p.hide()
 	}
 	
 	//auth
 	var auth=function(){
-/*
-<<<<<<< HEAD
-		var a={}
-		a.wrap=d.body.r('div class=auth')		
-			a.gg=a.wrap.r('button class=google html=google')
-				.on('click',function(e){
-					// auth.loadAuth();
-					handleAuthClick();
-					makeApiCall();
-				})
-		
-			a.fb=a.wrap.r('button class=facebook html=facebook')
-				.on('click',function(e){
-					// auth.loadAuth();
-					FB.login(function () {
-						console.log('fb login');
-					});
-				})
-=======
-/**/
 		var a={};
 		a.doLogin = function (name, email) {
 			console.log("logging in with " + name + ", " + email);
@@ -344,6 +362,7 @@ d.on('ready', function(){
 					auth.logged=0
 					dnet.post(pack,function(res){
 						auth.fake.addclass('not')
+						console.log('im fake logged out')
 					})				
 				} else {
 					pack.com='login'
@@ -351,7 +370,7 @@ d.on('ready', function(){
 					dnet.post(pack,function(res){
 						auth.fake.remclass('not')
 						document.cookie='sessionid='+res
-						console.log('cookie:',document.cookie)
+						console.log('im fake logged in')
 					})				
 				}
 				
@@ -365,12 +384,14 @@ d.on('ready', function(){
 	function showsmes(mes){
 		smes.find('.cont').h(mes)
 		smes.show()
+		setTimeout(function(){
+			smes.hide()
+		},1000)		
 	}
 	var smes=d.body.r('div class=smes')
 		.on('click',function(e){
 			this.hide()
 		})
-		.r('div class=note html=click to close').p
 		.r('div class=cont').p
 	smes.hide()
 })

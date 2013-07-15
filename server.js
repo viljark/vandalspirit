@@ -1,4 +1,4 @@
-var fs = require('fs'),
+﻿var fs = require('fs'),
 	path=require('path'),
 	ds=require('ds'),
 	contenttype={
@@ -59,51 +59,58 @@ var fs = require('fs'),
 			}				
 			switch(data.type){
 				case 'ds':
-					//is authented
-					var com=data.com,
-						isauth=0;
-					
+					//if have use update session time
 					user=users.users[sessionid]
 					if(user) user.time=new Date().getTime()
 					
-					//console.log('ds com:',com,isauth,sessionid,sessionid.length);
-											
-					//is owner
-					var isowner=function(){
-					
-					}
 					var allow=0
-					if (com=='get'){
+					if (data.com=='get'){
 						allow=1
 					} else if (user){
-						switch (com){
+						switch (data.com){
 							case 'add':
+								//add user data to item
+								data.args.creator=user.authented.name
+								data.args.mail=user.authented.mail
+								data.args.id='item-'+new Date().getTime()
 								allow=1
 								break;
 							case 'rem':
+								allow=2
 								var cdata={}
 								for(var key in data){
 									cdata[key]=data[key]
 								}
 								cdata.com='get'
-								ds.handler(cdata,function(rdata){								
-									console.log('rem data:',rdata)																		
+								//get relevant item from ds to check creator
+								ds.handler(cdata,function(rdata){																	
+									rdata=JSON.parse(rdata)
+									console.log('rem data:',rdata)									
+									if(rdata.creator==user.authented.name && rdata.mail==user.authented.mail){
+										ds.handler(data,function(rdata){
+											res.writeHead(200);
+											res.end('Läkski ära, kahju')
+										})
+									} else {										
+										//if creator allow rem									
+										res.writeHead(200);
+										res.end('Ei saa, pole sinu oma')
+									}
 								})							
-								res.writeHead(200);
-								res.end('almost removed');									
 								break;
 						}
 					}
 					
-					if (allow) {						
+					if (allow==1) {
 						ds.handler(data,function(rdata){
 							if(typeof(rdata)=='object') rdata=JSON.stringify(rdata)
 							res.writeHead(200);
+							if (data.com=='add') rdata='Naks ja olemas'
 							res.end(rdata);
 						})
-					} else {
+					} else if(allow==0){
 						res.writeHead(200);
-						res.end('not allowed login');							
+						res.end('Kas teadsid, et võõrastele pole see lubatud');
 					}
 					break
 				case 'auth':
@@ -141,11 +148,11 @@ var fs = require('fs'),
 				authented: {
 					name: data.name,
 					mail: data.mail,
-					id: data.id
+					id: data.id,
+					type: ''//fb,gg
 				}
 			}
 			users.users[user.sessionid]=user
-			console.log('add user:',user.sessionid)
 			return user
 		},
 		remuser: function(sessionid){
@@ -184,9 +191,11 @@ fs.exists(path.resolve(__dirname+'/ds'),function(exists){
 
 app.listen(2222);
 console.log('SERVER STARTED');
-
+/*
 // lets handle uncaught exceptions 
 process.on('uncaughtException', function(err) {
     // handle the error safely
     console.log("Caught an unexpected exception:", err);
 });
+/**/
+

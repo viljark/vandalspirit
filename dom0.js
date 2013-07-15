@@ -359,6 +359,10 @@
 		}
 		return this
 	}
+	Element.prototype.fn=function(fn){
+		fn(this)
+		return this
+	}
 	//Nodelist
 	NodeList.prototype.toarray=function(){
 		var arr = [];
