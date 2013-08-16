@@ -1,10 +1,13 @@
+var dss
 (function(){
 	//string to arguments for render and styles
 	function stoa(obj,s,sep){	
 		var tonext,
-			tothis		
+			tothis,
+			ele
 		s=s.split(sep)
-		loop(s,function(ind,ele){
+		for(var ind in s){
+			ele=s[ind]
 			ele=ele.split(' ')
 			if(ind==0){
 				if(sep=='=') {
@@ -26,10 +29,11 @@
 				if(sep=='=') {
 					obj.set(tothis,ele.join(' '))				
 				} else {
+					tothis=styleupper(tothis)
 					obj.style[tothis]=ele.join(' ')
 				}
 			}
-		})
+		}
 		return obj	
 	}
 	//node
@@ -90,10 +94,32 @@
 		this.dispatchEvent(e);	
 		return this;
 	}
-	Node.prototype.on=function(name,fn,f){
-		this.addEventListener(name,fn, f || false);
-		if (!this.eventfunctions) this.eventfunctions={};
-		this.eventfunctions['efn-'+name]=fn;
+	Node.prototype.on=function(name,fn,haveselector){
+		var sel
+		if(haveselector){			
+			sel=fn			
+			fn=haveselector
+			this.addEventListener(name,function(e){				
+				var tsel=sel				
+				if(tsel[0]=='.'){
+					if(e.t.hasclass(tsel.substr(1))) fn(e)
+				} else if (tsel[0]=='#') {
+					if(e.t.id==tsel.substr(1)) fn(e)
+				} else if (e.t.tagName.toLowerCase()==tsel){
+					fn(e)
+				}
+				
+			},false);
+			
+			if (!this.eventfunctions) this.eventfunctions={};
+			this.eventfunctions['efn-'+name+sel]=fn;
+			
+		} else {
+			//this.addEventListener(name,fn, f || false);
+			this.addEventListener(name,fn,false);
+			if (!this.eventfunctions) this.eventfunctions={};
+			this.eventfunctions['efn-'+name]=fn;		
+		}
 		return this;
 	}
 	Node.prototype.off=function(n,fn,f){
@@ -110,6 +136,7 @@
 	})	
 	document.new=function(tag,attrs){
 		var ele=document.createElement(tag)
+		ele.tn=document.createTextNode('')
 		if (attrs) ele.set(attrs)
 		return ele
 	}
@@ -119,37 +146,29 @@
 	//element
 	//Element.prototype.display='initial'
 	Element.prototype.findup=function(sel){
-		if (!sel) {
-			return this.parentNode;
-		} else {			
-			var type=sel[0],
-				p=this.p
-			switch(type){
-				case '#':
-					if(p.id==sel) {
-						return p
-					} else {
-						p.findup(sel)
-					}
-					break
-				case '.':
-					if(p.hasclass(sel.substr(1))){
-						return p
-					} else {
-						p.findup(sel)
-					}				
-					break
-				default:
-					if(p.tagName.toLowerCase()==sel) {
-						return p
-					} else {
-						p.findup(sel)
-					}				
-					break
-				
-			}
+		if(this==document.body.p || !sel){
 			return false
-		}		
+		} else {
+			if(sel[0]=='.'){
+				if(this.p.hasclass(sel.substr(1))){
+					return this.p
+				} else {
+					return this.p.findup(sel)
+				}
+			} else if(sel[0]=='#'){
+				if(this.p.id==sel.substr(1)){
+					return this.p
+				} else {
+					return this.p.findup(sel)
+				}
+			} else {
+				if(this.p.tagName.toLowerCase()==sel){
+					return this.p
+				} else {
+					return this.p.findup(sel)
+				}
+			}
+		}
 	}
 	Element.prototype.next=function(changescope){
 		var found=false;
@@ -217,6 +236,7 @@
 	}
 	Element.prototype.new=function(tag,attrs,loc){
 		var ele=document.createElement(tag);
+		ele.tn=document.createTextNode('')
 		if (attrs) {
 			if(typeof(attrs)=='string') {
 				ele.innerHTML=attrs
@@ -233,27 +253,29 @@
 	}
 	Element.prototype.set = function (a,v) {
 		if (typeof(a)=='object'){
-			var v;
+			var v
 			for (var k in a) {
-				v = a[k];
-				this.set(k,v);
+				v = a[k]
+				this.set(k,v)
 			}
 		} else {	
 			switch (a) {
 				case 'html':
-					this.innerHTML = v;
+					this.innerHTML = v
 					break;
 				case 'style':
 					for (var n in v) {
-						this.style[n] = v[n];
+						n=styleupper(n)
+						this.style[n] = v[n]
 					}
 					break;
 				default:
-					this.setAttribute(a, v);
+					this.setAttribute(a, v)
 					break;
-			};
+			}
 		}
-	};
+		return this
+	}
 	Element.prototype.get = function (n,n2){
 		switch(n){
 			case 'html':
@@ -272,7 +294,7 @@
 		}	
 		return n;
 	};
-	Element.prototype.show = function () {	
+	Element.prototype.show = function () {			
 		this.style.display = this.display || window.getComputedStyle(this).display;
 		delete this.display;
 		var e = document.createEvent("HTMLEvents");
@@ -313,7 +335,7 @@
 				}
 			} else {
 				var i=nl.indexOf(n);
-				nl.splice(i,1);
+				if(i!=-1) nl.splice(i,1);
 			}
 			this.className=nl.join(' ');			
 		} else {
@@ -359,8 +381,8 @@
 		}
 		return this
 	}
-	Element.prototype.fn=function(fn){
-		fn(this)
+	Element.prototype.fn=function(callback){
+		callback(this)
 		return this
 	}
 	//Nodelist
@@ -371,6 +393,119 @@
 		}
 		return arr;
 	}
-
+	//ff nodelist
+	HTMLCollection.prototype.toarray=function(){
+		var arr = [];
+		for (var i = 0, ref = arr.length = this.length; i < ref; i++) {
+			arr[i] = this[i];
+		}
+		return arr;
+	}
+	//Event
+	Event.prototype.__defineGetter__("t", function(){
+		return this.target
+	})
+	Element.prototype.getpos=function(tar){		
+		var pos={
+				x:this.offsetLeft,
+				y:this.offsetTop
+			}
+		if(tar && this!=tar){
+			pos=this.p.getpos(tar)	
+			pos.x+=this.offsetLeft
+			pos.y+=this.offsetTop
+		}
+		return pos
+	}	
+	Element.prototype.setpos=function(pos,tar){	
+		if(tar){
+			ppos=this.p.getpos(d.body)
+			var x=pos.x-ppos.x,
+				y=pos.y-ppos.y
+			this.style.left=x+'px'
+			this.style.top=y+'px'
+		} else {
+			this.style.left=pos.x+'px'
+			this.style.top=pos.y+'px'
+		}
+	}
+	
 	console.log('loaded dom0');
+	//dynamic style sheets
+	dss={
+		sheets:{},
+		new:function(id){
+			var sh={
+				styles:{}
+			}
+			sh.body=d.head.r('style id='+id)
+			sh.new=function(){
+				var sel,args=[]
+				loop(arguments,function(i,e){
+					if(i==0){
+						sel=e
+					} else {						
+						args.push(e)
+					}
+				})	
+				this.styles[sel]=args
+			}
+			sh.show=function(){
+				sh.hide()
+				dss.rs(sh.id,sh.styles)
+			}
+			sh.hide=function(){
+				var t=d.head.find('#'+sh.id)
+				if(t)t.rem()
+			}
+			sh.shows=function(sel){
+			}
+			sh.hides=function(sel){
+			}
+			this.sheets[id]=sh
+			return sh	
+		},
+		rs:function(id,sheet){
+			//render style sheet out of object
+			var ele=d.find('#'+id) || d.r('style id='+id),
+				str=''
+			ele.to(d.head)				
+			loop(sheet,function(k,v,i){
+				str+=k+'{\n'
+				loop(v,function(i2,v2){
+					/*
+					var kv=v2.split(':'),
+						ind=kv[0].indexOf('-'),
+						chunk,
+						ch
+					if(ind!=-1){
+						ch=kv[0][ind+1]
+						chunk='-'+ch
+						kv[0]=kv[0].replace(chunk,ch.toUpperCase())
+						v2=kv.join(':')
+						console.log('v2:',v2)
+					}
+					/**/
+					
+					
+					str+='\t'+v2+';\n'
+				})
+				str+='}\n'
+			})
+			ele.h(str)
+			return ele
+		}				
+	}
+	//ff
+	function styleupper(str){		
+		var ind=str.indexOf('-'),
+			chunk,
+			ch
+		if(ind!=-1){
+			ch=str[ind+1]
+			chunk='-'+ch
+			str=str.replace(chunk,ch.toUpperCase())
+		}	
+		return str
+	}
 })()

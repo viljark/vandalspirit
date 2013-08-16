@@ -3,58 +3,71 @@
 	
 d.on('ready', function(){
 	console.log('Document ready');
-	/*
-	dnet.post('load/sapp')
-	dnet.post('sethandler/sapp.handler')
-	/**/
-	
-	var logo=d.body.r('div class=logowrap')
-		.r('div id=logo class=logo html=Teokoda').p
-		.r('div class=img').p
-	
-	var nav=d.body.r('div class=nav')
-	var selected;
-	var data={
-		type: 'ds',
-		com: 'get',
-		path: 'ds/teokoda'
-	}
-	//get groups
-	dnet.post(data,function(res){		
-		var but,
-			groups=[],
-			rbow=[
-				'#AA3D12',
-				'rgb(170, 121, 18)',
-				'rgb(134, 170, 18)',
-				'rgb(18, 170, 127)',
-				'rgb(18, 61, 170)',
-				'rgb(85, 18, 170)'				
-			];
-		loop(JSON.parse(res),function(ind,ele){		
-			but=nav.r('button')
-				.h(ele)
-				.s('background:'+rbow[ind%6])
-				.on('click',function(e){
-					if (selected) selected.remclass('selected')
-					this.addclass('selected')
-					selected=this
-					if (activemarker) {
-						activemarker.setMap(null)
-						activemarker=0
-					}		
-					getgroup(selected.innerHTML.toLowerCase())									
-				})
+		
+	//html
+	var nav,
+		selected,
+		smes;
+		
+	var renderhtml=function(){
+		d.body.r('div class=logowrap')
+			.r('div id=logo class=logo html=Teokoda').p
+			.r('div class=img')
+		
+		nav=d.body.r('div class=nav');
+		mapwrap=d.body.r('div class=mapwrap')
+		mapd=mapwrap.r('div id=map class=map')
+		
+		smes=d.body.r('div class=smes')
+			.on('click',function(e){
+				this.hide()
+			})
+			.r('div class=cont').p
+		smes.hide()				
+	}()	
+	var rendergroups=function(){
+		var data={
+			type: 'ds',
+			com: 'get',
+			path: 'ds/teokoda'
+		}
+		
+		//get groups
+		dnet.post(data,function(res){		
+			var but,
+				groups=[],
+				rbow=[
+					'#AA3D12',
+					'rgb(170, 121, 18)',
+					'rgb(134, 170, 18)',
+					'rgb(18, 170, 127)',
+					'rgb(18, 61, 170)',
+					'rgb(85, 18, 170)'				
+				];
+			loop(JSON.parse(res),function(ind,ele){		
+				but=nav.r('button')
+					.h(ele)
+					.s('background:'+rbow[ind%6])
+					.on('click',function(e){
+						if (selected) selected.remclass('selected')
+						this.addclass('selected')
+						selected=this
+						if (activemarker) {
+							activemarker.setMap(null)
+							activemarker=0
+						}		
+						getgroup(selected.innerHTML.toLowerCase())									
+					})
+			})
 		})
-	});
-	
+	}()
 	function getgroup(name){
 		var post={
 			type: 'ds',
 			path: ['ds/teokoda',name].join('/'),
 			com: 'get'
 		}
-		dnet.post(JSON.stringify(post),function(res){
+		dnet.post(JSON.stringify(post),function(res){			
 		//dnet.post('ds.teokoda.'+name+'.get()',function(res){
 			if (res){				
 				for(var nr in markers) markers[nr].setMap(null)
@@ -62,8 +75,11 @@ d.on('ready', function(){
 				var data=JSON.parse(res),
 					item,
 					pos
-				for(var nr in data){
+				for(var nr in data){					
 					item=JSON.parse(data[nr])
+					
+					console.log('data:',item.pos)
+					
 					pos=new google.maps.LatLng(item.pos[0],item.pos[1]);
 					var marker = new google.maps.Marker({
 						position: pos,
@@ -104,12 +120,9 @@ d.on('ready', function(){
 			aiad: 'aed',
 			trennid: 'trenn',
 			ringid: 'ring',
-		};
-	//map
-	(function(){	
-		mapwrap=d.body.r('div class=mapwrap')
-			mapd=mapwrap.r('div id=map class=map')
-
+		}
+	
+	var googlemap=function(){	
 		function initialize() {
 			var mapOptions = {
 				center: new google.maps.LatLng(58.37840540413009, 386.7269734802246),
@@ -151,58 +164,59 @@ d.on('ready', function(){
 			d.body.find('.nav').childNodes[0].trigger('click')
 		}
 		google.maps.event.addDomListener(window, 'load', initialize);		
-	})();	
-	
-	
-	var fields=[			
-			['name','nimi'],
-			['address','aadress'],
-			['creator','lisanud'],
-			['mail','e-mail'],
-			['phone','tel'],
-			['info','lisa info']
-		],
-		id,
-		name
+	}()
 	modal={}
-	modal.wrap=mapwrap.r('div class=modalwrap')
-		.r('div class=modal')
-			.r('div class=header html=modal header').p
-			.r('div class=content')
-				.r('form class=itemedit')
-				.loop(fields.length,function(i,ele){
-					id=fields[i][0]
-					name=fields[i][1]
-					ele.r('div class=field')
-						.r('label for='+id)
-							.h(name).p
-						.fn(function(e){
-							var tag='input'
-							if(id=='info'){								
-								e.r('textarea maxlength=500 id='+id+' name='+id)
-							} else if (id=='creator' || id=='mail'){
-								e.r('input id='+id+' name='+id+' readonly=readonly' )
-							} else {
-								e.r('input class=required id='+id+' name='+id)
-							}
-						})						
-				}).p
-				.r('div class=controls')
-					.r('button class=grey cancel html=tagasi')
-						.on('click',function(e){
-							canceledit()
-						}).p
-					.r('button class=save html=salvesta')
-						.on('click',function(e){
-							saveitem()
-						}).p
-					.r('button class=delete html=kustuta')
-						.on('click',function(e){
-							deleteitem()
-						}).p.p.p.p
-	modal.del=modal.wrap.find('.delete')
-	modal.form=modal.wrap.find('form')
-	modal.wrap.hide()
+	var rendermodal=function(){
+		var fields=[			
+				['name','nimi'],
+				['address','aadress'],
+				['creator','lisanud'],
+				['mail','e-mail'],
+				['phone','tel'],
+				['info','lisa info']
+			],
+			id,
+			name
+				
+		modal.wrap=mapwrap.r('div class=modalwrap')
+			.r('div class=modal')
+				.r('div class=header html=modal header').p
+				.r('div class=content')
+					.r('form class=itemedit')
+					.loop(fields.length,function(i,ele){
+						id=fields[i][0]
+						name=fields[i][1]
+						ele.r('div class=field')
+							.r('label for='+id)
+								.h(name).p
+							.fn(function(e){
+								var tag='input'
+								if(id=='info'){								
+									e.r('textarea maxlength=500 id='+id+' name='+id)
+								} else if (id=='creator' || id=='mail'){
+									e.r('input id='+id+' name='+id+' readonly=readonly' )
+								} else {
+									e.r('input class=required id='+id+' name='+id)
+								}
+							})						
+					}).p
+					.r('div class=controls')
+						.r('button class=grey cancel html=tagasi')
+							.on('click',function(e){
+								canceledit()
+							}).p
+						.r('button class=save html=salvesta')
+							.on('click',function(e){
+								saveitem()
+							}).p
+						.r('button class=delete html=kustuta')
+							.on('click',function(e){
+								deleteitem()
+							}).p.p.p.p
+		modal.del=modal.wrap.find('.delete')
+		modal.form=modal.wrap.find('form')
+		modal.wrap.hide()		
+	}()
 	
 	function canceledit(){
 		if (activemarker) {
@@ -217,10 +231,8 @@ d.on('ready', function(){
 			pos,
 			gname=selected.innerHTML.toLowerCase()
 		if(data){	
-			// data.id=selected.innerHTML.toLowerCase()+new Date().getTime()
-			// data.owner=auth.fakeinput.value
-			pos=activemarker.getPosition()
-			data.pos=[pos.jb,pos.kb]
+			pos=activemarker.getPosition()			
+			data.pos=[pos.lat(),pos.lng()]			
 			var pack={
 				type: 'ds',
 				com: 'add',
@@ -300,6 +312,20 @@ d.on('ready', function(){
 		var a={};
 		a.doLogin = function (name, email) {
 			console.log("logging in with " + name + ", " + email);
+			
+			var authdata={
+				type: 'auth',
+				com: 'login',
+				name: name,
+				mail: email,
+				id: '123'
+			}									
+			auth.logged=1
+			dnet.post(authdata,function(res){				
+				document.cookie='sessionid='+res
+				a.gg.hide()
+				a.fb.hide()
+			})				
 		}
 		a.wrap=d.body.r('div class=auth')
 			a.gg=a.wrap.r('button class=google html=google')
@@ -348,6 +374,7 @@ d.on('ready', function(){
 				})
 
 		a.logged=0
+		/*
 		a.fake=a.wrap.r('button class=fake not html=fake')
 			.on('click',function(e){
 				var pack={
@@ -377,6 +404,7 @@ d.on('ready', function(){
 			})	
 		
 		a.fakeinput=a.wrap.r('input class=fakeinput value=user1')
+		/**/
 		return a
 	}()
 
@@ -386,12 +414,7 @@ d.on('ready', function(){
 		smes.show()
 		setTimeout(function(){
 			smes.hide()
-		},1000)		
+		},2000)		
 	}
-	var smes=d.body.r('div class=smes')
-		.on('click',function(e){
-			this.hide()
-		})
-		.r('div class=cont').p
-	smes.hide()
+
 })

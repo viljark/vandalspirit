@@ -59,7 +59,7 @@
 			}				
 			switch(data.type){
 				case 'ds':
-					//if have use update session time
+					//if have user update session time
 					user=users.users[sessionid]
 					if(user) user.time=new Date().getTime()
 					
@@ -116,7 +116,7 @@
 				case 'auth':
 					//fake auth
 					if (data.com=='login'){						
-						if (data.name && data.mail && data.id){
+						if (data.name && data.mail){// && data.id){
 							var user=users.adduser(data)								
 							res.writeHead(200);
 							res.end(user.sessionid)
@@ -176,7 +176,7 @@ function remusers(){
 	for(var sessionid in users.users){
 		user=users.users[sessionid]
 		if (time-user.time>kicktime){
-			remuser(sessionid)
+			users.remuser(sessionid)
 		}		
 	}
 	setTimeout(function(){
